@@ -1,0 +1,6 @@
+downloads/*
+uploads/*
+tmp/*
+__pycache__/*
+log.txt
+out.log

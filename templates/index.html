@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NineBrain GPT Translator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+    <style>
+        .container {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>NineBrain GPT Translator</h1>
+    </header>
+    <div id="languages">
+        <span class="language-option">
+            <input type="checkbox" id="en" name="en" value="English (en)">
+            <label for="en">English (en)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="pl" name="pl" value="Polish (pl)">
+            <label for="pl">Polish (pl)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="de" name="de" value="German (de)">
+            <label for="de">German (de)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="ru" name="ru" value="Russian (ru)">
+            <label for="ru">Russian (ru)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="fr" name="fr" value="French (fr)">
+            <label for="fr">French (fr)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="ko" name="ko" value="Korean (ko)">
+            <label for="ko">Korean (ko)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="nl" name="nl" value="Dutch (nl)">
+            <label for="nl">Dutch (nl)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="ja" name="ja" value="Japanese (ja)">
+            <label for="ja">Japanese (ja)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="tr" name="tr" value="Turkish (tr)">
+            <label for="tr">Turkish (tr)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="es" name="es" value="Spanish (es)">
+            <label for="es">Spanish (es)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="it" name="it" value="Italian (it)">
+            <label for="it">Italian (it)</label>
+        </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="vi" name="vi" value="Vietnamese (vi)">
+            <label for="vi">Vietnamese (vi)</label>
+        </span>
+    </div>
+    <div class="container">
+        <section id="playground">
+            <h2>Playground</h2>
+            <p>GPT在翻译语言时速度和文字数量相关，1500字的内容翻译一门语言时间可能长达数分钟，如果翻译多门语言时间可能长达几十分钟，请耐心等待，不要关闭页面。</p>
+            <textarea id="inputText" rows="8" cols="50"></textarea>
+            <button id="submitText">Submit</button>
+            <div id="translationProgress"></div>
+            <textarea id="outputText" rows="8" cols="50" readonly></textarea>
+        </section>
+    </div>
+    <div class="container">
+        <section id="upload">
+            <h2>Upload Translation Excel</h2>
+            <p>请确保excel文件格式正确，第一行是标题，翻译会从第二行开始，前三列是分类，第四列才是要翻译的正文。GPT在翻译语言时速度和文字数量相关，内容较多时翻译可能长达几个小时，请耐心等待翻译完成</p>
+            <input type="file" id="fileInput">
+            <button id="submitFile">Submit</button>
+            <div id="translationProgressContainer">
+                <div id="fileProgress"></div>
+            </div>
+            <button id="downloadFile" disabled>Download Translated File</button>
+        </section>
+    </div>
+</body>
+</html>
