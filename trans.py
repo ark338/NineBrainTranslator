@@ -2,7 +2,7 @@ import openpyxl
 import json
 import time
 import re
-import gpt
+from easy_gpt_utils import gpt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import sys

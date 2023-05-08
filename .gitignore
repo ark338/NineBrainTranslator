@@ -4,3 +4,4 @@ tmp/*
 __pycache__/*
 log.txt
 out.log
+nohup.out
