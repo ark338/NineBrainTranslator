@@ -26,6 +26,7 @@ async function translateText() {
         return;
     }
 
+    const enableGPT4 = document.getElementById('enableGPT4').checked;
     const submitTextButton = document.getElementById('submitText');
     const inputText = document.getElementById('inputText').value;
 
@@ -34,7 +35,7 @@ async function translateText() {
 
     const response = await fetch('/translate/text', {
         method: 'POST',
-        body: new URLSearchParams({text: inputText, languages: JSON.stringify(languages), user_id: userId}),
+        body: new URLSearchParams({text: inputText, languages: JSON.stringify(languages), user_id: userId, enable_gpt4: enableGPT4}),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     });
 
@@ -59,6 +60,7 @@ async function uploadFile() {
         alert('Please select at least one language.');
         return;
     }
+    const enableGPT4 = document.getElementById('enableGPT4').checked;
     const fileInput = document.getElementById('fileInput');
     const submitFile = document.getElementById('submitFile');
     const downloadButton = document.getElementById('downloadFile');
@@ -66,6 +68,7 @@ async function uploadFile() {
     formData.append('file', fileInput.files[0]);
     formData.append('languages', JSON.stringify(languages));
     formData.append('user_id', userId);
+    formData.append('enable_gpt4', enableGPT4);
 
     fileInput.disabled = true;
     submitFile.disabled = true;

@@ -53,10 +53,14 @@ def log_error(row_number, row_data, error, translations_str=None):
 #  row_data: 一行输入数据，是一个列表，包含了分类，标题，url，正文
 #  min_interval: 最小间隔，如果翻译时间小于min_interval，那么会sleep，这是由于GPT调用时往往会在一定时间内有次数限制，如果短时间内调用次数过多，会返回错误
 #  retries: 重试次数，如果翻译失败，会重试retries次，如果仍然失败，那么就会返回None
-def process_row(row_number, row_data, target_languages, progress_callback=None, min_interval=1, retries=3):
+def process_row(row_number, row_data, target_languages, progress_callback=None, min_interval=1, retries=3, enable_gpt4 = False):
     start_time = time.time()
 
-    gpt_instance = gpt.GPT()
+    if (enable_gpt4):
+        gpt_instance = gpt.GPT(model = "gpt-4")
+    else:
+        gpt_instance = gpt.GPT(model = "gpt-3.5-turbo")
+
     tokens = gpt_instance.num_tokens_from_string(row_data[3])
     logger.info(f"processing row: {row_number} tokens: {tokens} ")
     if progress_callback:
@@ -199,7 +203,7 @@ def process_row_shot(gpt_instance, row_number, row_data, target_languages, progr
 
     return row_data + tuple(translated_texts)
 
-def process_excel(input_file, output_file, min_row = 2, max_row = None, target_languages = None, progress_callback=None):    
+def process_excel(input_file, output_file, min_row = 2, max_row = None, target_languages = None, progress_callback=None, enable_gpt4 = False):    
     input_wb = openpyxl.load_workbook(input_file)
     input_sheet = input_wb.active
 
@@ -217,7 +221,7 @@ def process_excel(input_file, output_file, min_row = 2, max_row = None, target_l
     input_data = list(input_sheet.iter_rows(min_row=min_row, max_row=max_row, min_col=1, max_col=4, values_only=True))
 
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(process_row, row_number, row_data, target_languages, progress_callback=progress_callback): row_data for row_number, row_data in enumerate(input_data, start=min_row)}
+        futures = {executor.submit(process_row, row_number, row_data, target_languages, progress_callback=progress_callback, enable_gpt4=enable_gpt4): row_data for row_number, row_data in enumerate(input_data, start=min_row)}
 
         for future in futures:
             output_data = future.result()

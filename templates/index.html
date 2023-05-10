@@ -21,7 +21,11 @@
     <header>
         <h1>NineBrain GPT Translator</h1>
     </header>
-    <div id="languages">
+    <div>
+        <input type="checkbox" id="enableGPT4" name="enableGPT4" class="switch">
+        <label for="enableGPT4">使用GPT-4 (注：在未勾选时默认使用GPT-3.5-turbo。GPT-4在进行大段文字翻译的时候有可能准确性更高，但是会很慢且很贵，请谨慎使用。)</label>
+    </div>
+    <div id="languages" class="container">
         <span class="language-option">
             <input type="checkbox" id="en" name="en" value="English (en)">
             <label for="en">English (en)</label>
