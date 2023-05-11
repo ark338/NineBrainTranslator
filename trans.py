@@ -227,9 +227,9 @@ def process_row_shot(gpt_instance, row_number, row_data, target_languages, progr
             translations = json.loads(json_string)
             translated_texts = [t["txt"] for t in translations]
             break
-        except json.JSONDecodeError as e:
+        except Exception as e:
             if attempt < retries - 1:
-                logger.warning(f"Row {row_number} Json Exception, attempt {attempt}, error:{e}, raw text: {translations_str}")
+                logger.warning(f"Row {row_number} Exception, attempt {attempt}, error:{e}, raw text: {translations_str}")
                 history = [
                     {'role':'user', 'content':query_text},
                     {'role':'assistant', 'content':translations_str}
@@ -237,21 +237,14 @@ def process_row_shot(gpt_instance, row_number, row_data, target_languages, progr
                 query_text = '''
                     When I try to load the translated text into json, I get an error:
                     {e}
-                    The json format is wrong, it may be:\n1. special characters, such as no escape character before the quotation mark, or there may be extra characters. In this case you should fix it.\n2. There are more than one json array, In this case you should no split the text to be translated.\n please check and re-output.
+                    Please make correction.
                     '''
+                # The json format is wrong, it may be:\n1. special characters, such as no escape character before the quotation mark, or there may be extra characters. In this case you should fix it.\n2. There are more than one json array, In this case you should no split the text to be translated.\n please check and re-output.
                 gpt_instance.set_use_history(True)
                 # sleep 1 seconds to avoid rate limit bug like pinecorn had
                 time.sleep(1)
                 continue
             log_error(row_number, row_data, e, translations_str)
-            break
-        except Exception as e:
-            if attempt < retries - 1:
-                logger.warning(f"Row {row_number} Exception, attempt{attempt}, error:{e}")
-                # sleep 1 seconds to avoid rate limit bug like pinecorn had
-                time.sleep(1)
-                continue
-            log_error(row_number, row_data, e)
             break
 
     return row_data + tuple(translated_texts)
