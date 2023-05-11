@@ -2,7 +2,7 @@ import openpyxl
 import json
 import time
 import re
-from easy_gpt_utils import gpt
+from easy_gpt_utils import gpt, embedding, vector_database
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import sys
@@ -19,6 +19,8 @@ logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(console_handler)
 
+use_openai = True
+
 def make_query(title, label, text):
     #return f"The texts to be translated are under the category of [{title}] and [{label}].\n The texts to be translated are:[{text}]"
     return f"The texts to be translated are:['''{text}''']"
@@ -30,9 +32,31 @@ def trans(gpt_instance, query_text, history=None):
     if (history):
         gpt_instance.set_history(history)
 
-    #TODO: query context is null, it should be the terminology info of Ninebot to make a more precise translation
-    translations = gpt_instance.query("", query_text)
+    # query glossaies from vector database and set it as context
+    if use_openai:
+        # use openai
+        embe_instance = embedding.Embedding()
+    else :
+        # use azure
+        embe_instance = embedding.Embedding(
+            model="model-text-embedding-ada-002", 
+            api_type="azure", 
+            api_base = "https://ninebot-rd-openai-1.openai.azure.com/",
+            api_version = "2022-12-01")
+        
+    pinecorn_instance = vector_database.Pinecone(index = 'segway-knowledge-base', environment='asia-southeast1-gcp')
+    logger.debug("start trans")
+    embe = embe_instance.get_raw_embedding(query_text)
+    logger.debug("embe finished")
+    ret = pinecorn_instance.query_meta(namespace = vector_database.NamesSpaces.Glossary.value, threshold = 0.8, vector = embe, top_k = 10)
+    logger.debug("pinecorn finished")
 
+    context = "Here is the glossary, please refer to the glossary for translation. If the meaning is the same, please use the translation in the glossary directly:" + "\n".join(item['metadata']['content'] for item in ret)
+
+    #TODO: query context is null, it should be the terminology info of Ninebot to make a more precise translation
+    translations = gpt_instance.query([context], query_text)
+
+    logger.debug(f"query finished query_text: {query_text}, translations = {translations}")
     return translations
 
 def log_error(row_number, row_data, error, translations_str=None):
@@ -56,10 +80,10 @@ def log_error(row_number, row_data, error, translations_str=None):
 def process_row(row_number, row_data, target_languages, progress_callback=None, min_interval=1, retries=3, enable_gpt4 = False):
     start_time = time.time()
 
-    if (enable_gpt4):
-        gpt_instance = gpt.GPT(model = "gpt-4")
-    else:
+    if (enable_gpt4 is None or enable_gpt4 == False or enable_gpt4 == "false"):
         gpt_instance = gpt.GPT(model = "gpt-3.5-turbo")
+    else:
+        gpt_instance = gpt.GPT(model = "gpt-4")
 
     tokens = gpt_instance.num_tokens_from_string(row_data[3])
     logger.info(f"processing row: {row_number} tokens: {tokens} ")

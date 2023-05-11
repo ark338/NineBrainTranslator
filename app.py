@@ -37,6 +37,8 @@ def translate_text():
         socketio.emit('translation_progress', {'user_id': user_id, 'progress':lang})
     translations = trans.process_row(1, transrow, target_languages, report_progress, enable_gpt4=enable_gpt4)  # 使用您提供的翻译函数
 
+    print(f" text {text} target_languages {target_languages} user_id {user_id} enable_gpt4 {enable_gpt4}")
+
     result = ""
     for i in range(len(target_languages)):
         result += "\n\n" + target_languages[i] + ": " + translations[i+4]
@@ -62,11 +64,12 @@ def upload_file():
         return jsonify({"error": "File upload failed"}), 400
 
     languages = request.form.getlist('languages')
-    print(f"languages: {languages}")
     target_languages = jsonify(eval(languages[0])).json
     user_id = request.form['user_id']
     enable_gpt4 = request.form['enable_gpt4']
     
+    print(f"languages: {target_languages} user_id {user_id} enable_gpt4 {enable_gpt4}")
+
     def report_progress(lang):
         socketio.emit('file_progress', {'user_id': user_id, 'progress':lang})
     
