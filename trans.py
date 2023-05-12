@@ -1,3 +1,4 @@
+import os
 import openpyxl
 import json
 import time
@@ -19,7 +20,8 @@ logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(console_handler)
 
-use_openai = True
+# True to use openai False to use Azure
+use_openai = False
 glossary_token_limit = 300
 
 def make_query(title, label, text):
@@ -105,7 +107,17 @@ def process_row(row_number, row_data, target_languages, progress_callback=None, 
     # 2021/05/11 临时方案，再减去一个glossary_token_limit / 2
 
     if (enable_gpt4 is None or enable_gpt4 == False or enable_gpt4 == "false"):
-        gpt_instance = gpt.GPT(model = "gpt-3.5-turbo")
+        if (use_openai):
+            # use openai
+            gpt_instance = gpt.GPT(model = "gpt-3.5-turbo")
+        else:
+            # use azure
+            gpt_instance = gpt.GPT(
+                model="model-gpt-35-turbo-0301", 
+                api_type="azure", 
+                api_base = "https://ninebot-rd-openai-1.openai.azure.com/",
+                api_version = "2023-03-15-preview",
+                api_key = os.getenv("AZURE_API_KEY"))
         token_limit = 1850
     else:
         gpt_instance = gpt.GPT(model = "gpt-4")
