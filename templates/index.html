@@ -32,7 +32,9 @@
     </div>
     <div>
         <input type="checkbox" id="enableGPT4" name="enableGPT4" class="switch">
-        <label for="enableGPT4">使用GPT-4 (注：在未勾选时默认使用GPT-3.5-turbo。GPT-4在进行大段文字翻译的时候有可能准确性更高，但是会很慢且很贵，请谨慎使用。)</label>
+        <label for="enableGPT4">
+            使用GPT-4 (注：在未勾选时默认使用GPT-3.5-turbo。GPT-4在长句翻译时准确性更高，但是速度是GPT-3.5的一半，价格是6倍，请酌情使用。)
+        </label>
     </div>
     <div id="languages" class="container">
         <span class="language-option">
@@ -168,12 +170,10 @@
     <div class="container">
         <section id="upload">
             <h2>Upload Translation Excel</h2>
-            <p>请确保excel文件格式正确，第一行是标题，翻译会从第二行开始，前三列是分类，第四列才是要翻译的正文。GPT在翻译语言时速度和文字数量相关，内容较多时翻译可能长达几个小时，请耐心等待翻译完成</p>
+            <p>请确保excel文件格式正确，第一行是标题，翻译会从第二行开始，前三列是1,2,3级分类，第四列才是要翻译的正文。GPT在翻译语言时速度和文字数量相关，内容较多时翻译可能长达几个小时，请耐心等待翻译完成</p>
             <input type="file" id="fileInput">
             <button id="submitFile">Submit</button>
-            <div id="translationProgressContainer">
-                <div id="fileProgress"></div>
-            </div>
+            <div id="fileProgress"></div>
             <button id="downloadFile" disabled>Download Translated File</button>
         </section>
     </div>

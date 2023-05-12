@@ -16,7 +16,7 @@ socket.on('file_progress', function(progress) {
         return;
     }
     const fileProgress = document.getElementById('fileProgress');
-    fileProgress.textContent += progress.progress + '\n';
+    fileProgress.textContent = progress.progress + '\n';
 });
 
 async function translateText() {

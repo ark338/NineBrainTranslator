@@ -34,13 +34,8 @@ button {
 }
 
 #fileProgress {
-    height: 7em;
+    height: 1em;
     overflow-y: auto;
     white-space: pre-wrap;
 }
 
-#translationProgressContainer {
-    border: 1px solid #000000;
-    border-radius: 4px;
-    padding: 10px;
-}

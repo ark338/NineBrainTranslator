@@ -218,6 +218,7 @@ def process_row_shot(gpt_instance, row_number, row_data, target_languages, progr
 
     query_text = make_query(title, label, text)
 
+    translations_str = ""
     for attempt in range(retries):
         try:
             translations_str = trans(gpt_instance, query_text, history)
@@ -235,9 +236,9 @@ def process_row_shot(gpt_instance, row_number, row_data, target_languages, progr
                     {'role':'assistant', 'content':translations_str}
                     ]
                 query_text = '''
-                    When I try to load the translated text into json, I get an error:
+                    When I try to parse the returned JSON, I encountered an error:
                     {e}
-                    Please make correction.
+                    Please make corrections.
                     '''
                 # The json format is wrong, it may be:\n1. special characters, such as no escape character before the quotation mark, or there may be extra characters. In this case you should fix it.\n2. There are more than one json array, In this case you should no split the text to be translated.\n please check and re-output.
                 gpt_instance.set_use_history(True)
@@ -266,10 +267,13 @@ def process_excel(input_file, output_file, min_row = 2, max_row = None, target_l
     # Process each row in the input sheet using ThreadPoolExecutor
     input_data = list(input_sheet.iter_rows(min_row=min_row, max_row=max_row, min_col=1, max_col=4, values_only=True))
 
+    row_count = 0
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(process_row, row_number, row_data, target_languages, progress_callback=progress_callback, enable_gpt4=enable_gpt4): row_data for row_number, row_data in enumerate(input_data, start=min_row)}
+        futures = {executor.submit(process_row, row_number, row_data, target_languages, enable_gpt4=enable_gpt4): row_data for row_number, row_data in enumerate(input_data, start=min_row)}
 
         for future in futures:
+            row_count = row_count + 1
+            progress_callback(f"{row_count}/{max_row} rows processed")
             output_data = future.result()
             output_sheet.append(output_data)
             output_wb.save(output_file)
