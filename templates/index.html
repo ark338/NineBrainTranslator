@@ -21,7 +21,28 @@
     <header>
         <h1>NineBrain GPT Translator</h1>
     </header>
-    <div id="languages">
+    <div>
+        <p style="font-size: 10px;" style="line-height: 0.5;">
+            change log：<br>
+            5月6日：第一版上线<br>
+            5月8日：GPT-4支持上线<br>
+            5月10日：接入九号专有名词表<br>
+            5月11日：新增12种语言，共支持23种语言<br>
+            5月12日：GPT-3.5接入Azure<br>
+        </p>
+    </div>
+    <div>
+        <input type="checkbox" id="enableGPT4" name="enableGPT4" class="switch">
+        <label for="enableGPT4">
+            使用GPT-4 (注：在未勾选时默认使用GPT-3.5-turbo。GPT-4在长句翻译时准确性更高，但是速度是GPT-3.5的一半，价格是6倍，请酌情使用。)
+        </label>
+    </div>
+    <div id="languages" class="container">
+        <span class="language-option">
+            <input type="checkbox" id="zh-TW" name="zh-TW" value="Traditional Chinese (zh-TW)">
+            <label for="zh-TW">Traditional Chinese (zh-TW)</label>
+        </span>
+
         <span class="language-option">
             <input type="checkbox" id="en" name="en" value="English (en)">
             <label for="en">English (en)</label>
@@ -81,6 +102,61 @@
             <input type="checkbox" id="vi" name="vi" value="Vietnamese (vi)">
             <label for="vi">Vietnamese (vi)</label>
         </span>
+
+        <span class="language-option">
+            <input type="checkbox" id="da" name="da" value="Danish (da)">
+            <label for="da">Danish (da)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="sv" name="sv" value="Swedish (sv)">
+            <label for="sv">Swedish (sv)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="no" name="no" value="Norwegian (no)">
+            <label for="no">Norwegian (no)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="fi" name="fi" value="Finnish (fi)">
+            <label for="fi">Finnish (fi)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="pt" name="pt" value="Portuguese (pt)">
+            <label for="pt">Portuguese (pt)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="cs" name="cs" value="Czech (cs)">
+            <label for="cs">Czech (cs)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="sk" name="sk" value="Slovak (sk)">
+            <label for="sk">Slovak (sk)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="et" name="et" value="Estonian (et)">
+            <label for="et">Estonian (et)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="lv" name="lv" value="Latvian (lv)">
+            <label for="lv">Latvian (lv)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="lt" name="lt" value="Lithuanian (lt)">
+            <label for="lt">Lithuanian (lt)</label>
+        </span>
+        
+        <span class="language-option">
+            <input type="checkbox" id="bg" name="bg" value="Bulgarian (bg)">
+            <label for="bg">Bulgarian (bg)</label>
+        </span>        
     </div>
     <div class="container">
         <section id="playground">
@@ -95,12 +171,16 @@
     <div class="container">
         <section id="upload">
             <h2>Upload Translation Excel</h2>
-            <p>请确保excel文件格式正确，第一行是标题，翻译会从第二行开始，前三列是分类，第四列才是要翻译的正文。GPT在翻译语言时速度和文字数量相关，内容较多时翻译可能长达几个小时，请耐心等待翻译完成</p>
+            <div>
+                <p>
+                    请确保excel文件格式正确:翻译的内容在第四列，从第二行开始，如下图所示。<br>
+                    翻译内容较多时会很慢，内容多时会花费几个小时，请不要关闭页面，耐心等待完成。<br>
+                </p>
+                <img src="/static/example.png" alt="Example">
+            </div>
             <input type="file" id="fileInput">
             <button id="submitFile">Submit</button>
-            <div id="translationProgressContainer">
-                <div id="fileProgress"></div>
-            </div>
+            <div id="fileProgress"></div>
             <button id="downloadFile" disabled>Download Translated File</button>
         </section>
     </div>

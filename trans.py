@@ -1,8 +1,9 @@
+import os
 import openpyxl
 import json
 import time
 import re
-from easy_gpt_utils import gpt
+from easy_gpt_utils import gpt, embedding, vector_database
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import sys
@@ -19,10 +20,51 @@ logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(console_handler)
 
+# True to use openai False to use Azure
+use_openai = False
+glossary_token_limit = 300
+
 def make_query(title, label, text):
     #return f"The texts to be translated are under the category of [{title}] and [{label}].\n The texts to be translated are:[{text}]"
     return f"The texts to be translated are:['''{text}''']"
 
+def get_context(gpt_instance, query_text, max_retries = 3):
+    # query glossaies from vector database and set it as context
+    if use_openai:
+        # use openai
+        embe_instance = embedding.Embedding()
+    else :
+        # use azure
+        embe_instance = embedding.Embedding(
+            model="model-text-embedding-ada-002", 
+            api_type="azure", 
+            api_base = "https://ninebot-rd-openai-1.openai.azure.com/",
+            api_version = "2022-12-01")
+    
+    pinecorn_instance = vector_database.Pinecone(index = 'segway-knowledge-base', environment='asia-southeast1-gcp')
+
+    ret = None
+    for i in range(max_retries):
+        try:
+            logger.debug("start embe")
+            embe = embe_instance.get_raw_embedding(query_text)
+            logger.debug("embe finished")
+            # TODO: buggy here, token usage did not calculated correctly
+            ret = pinecorn_instance.query_meta(namespace = vector_database.NamesSpaces.Glossary.value, threshold = 0.85, vector = embe, top_k = 5)
+            logger.debug(f"pinecorn finished, ret: {ret}")
+            break
+        except Exception as e:
+            logger.error(f"get_context error: {e}")
+            # to workaround pinecone bug, sleep and retry
+            time.sleep(1)
+            continue
+
+    context = ""       
+    if ret is not None and len(ret) > 0:
+        token_count = 0
+        context = "Here is the glossary, please refer to the glossary for translation. If the meaning is the same, please use the translation in the glossary directly:" + "\n".join(item['metadata']['content'] for item in ret if (token_count := token_count + gpt_instance.num_tokens_from_string(item['metadata']['content'])) < glossary_token_limit)
+
+    return context
 
 def trans(gpt_instance, query_text, history=None):
     # Implement your translation API logic here.
@@ -30,9 +72,10 @@ def trans(gpt_instance, query_text, history=None):
     if (history):
         gpt_instance.set_history(history)
 
-    #TODO: query context is null, it should be the terminology info of Ninebot to make a more precise translation
-    translations = gpt_instance.query("", query_text)
+    context = get_context(gpt_instance, query_text)
+    translations = gpt_instance.query([context], query_text)
 
+    logger.debug(f"query finished query_text: {query_text}, translations = {translations}")
     return translations
 
 def log_error(row_number, row_data, error, translations_str=None):
@@ -53,21 +96,41 @@ def log_error(row_number, row_data, error, translations_str=None):
 #  row_data: 一行输入数据，是一个列表，包含了分类，标题，url，正文
 #  min_interval: 最小间隔，如果翻译时间小于min_interval，那么会sleep，这是由于GPT调用时往往会在一定时间内有次数限制，如果短时间内调用次数过多，会返回错误
 #  retries: 重试次数，如果翻译失败，会重试retries次，如果仍然失败，那么就会返回None
-def process_row(row_number, row_data, target_languages, progress_callback=None, min_interval=1, retries=3):
+def process_row(row_number, row_data, target_languages, progress_callback=None, min_interval=1, retries=3, enable_gpt4 = False):
     start_time = time.time()
-
-    gpt_instance = gpt.GPT()
-    tokens = gpt_instance.num_tokens_from_string(row_data[3])
-    logger.info(f"processing row: {row_number} tokens: {tokens} ")
-    if progress_callback:
-        progress_callback(f"processing string: {row_number} tokens: {tokens}")
 
     # 168是一个经验值，如果token数量小于168，那么就调用短句翻译，否则调用长句翻译
     # 猜测大于170的时候，GPT-3会出现错误，实际中遇到过token达到170时不出错，到171的时候就会出现错误
     # 猜测应该是要求单句token数量 * 11国语言 + prompt的token数量 < 2048
-    # 当语言数量不确定的时候，采用1850/语言数量 作为阈值
+    # 当语言数量不确定的时候，采用1850/语言数量 作为阈值(gpt4使用3700)
+    # TODO: 2023/05/11 buggy here, 在增加了glossary之后，token的使用量计算不正确，需要重新计算
+    # 2021/05/11 临时方案，再减去一个glossary_token_limit / 2
+
+    if (enable_gpt4 is None or enable_gpt4 == False or enable_gpt4 == "false"):
+        if (use_openai):
+            # use openai
+            gpt_instance = gpt.GPT(model = "gpt-3.5-turbo")
+        else:
+            # use azure
+            gpt_instance = gpt.GPT(
+                model="model-gpt-35-turbo-0301", 
+                api_type="azure", 
+                api_base = "https://ninebot-rd-openai-1.openai.azure.com/",
+                api_version = "2023-03-15-preview",
+                api_key = os.getenv("AZURE_API_KEY"))
+        token_limit = 1850
+    else:
+        gpt_instance = gpt.GPT(model = "gpt-4")
+        token_limit = 3700
+
+    tokens = gpt_instance.num_tokens_from_string(row_data[3])
+    fast_token_limit = int((token_limit - glossary_token_limit / 2) / len(target_languages))
+    logger.info(f"processing row: {row_number} tokens: {tokens} fast_token_limit: {fast_token_limit}")
+    if progress_callback:
+        progress_callback(f"processing string: {row_number} tokens: {tokens}")
+
     try:
-        if (tokens <= int(1850 / len(target_languages))):
+        if (tokens <= fast_token_limit):
             return process_row_shot(gpt_instance, row_number, row_data, target_languages, progress_callback, retries)     
         else:
             return process_row_long(gpt_instance, row_number, row_data, target_languages, progress_callback, retries)
@@ -116,6 +179,8 @@ def process_row_long(gpt_instance, row_number, row_data, target_languages, progr
                 except Exception as e:
                     if attempt < retries - 1:
                         logger.warning(f"Row {row_number} Exception, attempt{attempt}, error:{e}")
+                        # sleep 1 seconds to avoid rate limit bug like pinecorn had
+                        time.sleep(1)
                         continue
                     log_error(row_number, row_data, e)
                     break_label = True
@@ -165,6 +230,7 @@ def process_row_shot(gpt_instance, row_number, row_data, target_languages, progr
 
     query_text = make_query(title, label, text)
 
+    translations_str = ""
     for attempt in range(retries):
         try:
             translations_str = trans(gpt_instance, query_text, history)
@@ -174,32 +240,29 @@ def process_row_shot(gpt_instance, row_number, row_data, target_languages, progr
             translations = json.loads(json_string)
             translated_texts = [t["txt"] for t in translations]
             break
-        except json.JSONDecodeError as e:
+        except Exception as e:
             if attempt < retries - 1:
-                logger.warning(f"Row {row_number} Json Exception, attempt {attempt}, error:{e}, raw text: {translations_str}")
+                logger.warning(f"Row {row_number} Exception, attempt {attempt}, error:{e}, raw text: {translations_str}")
                 history = [
                     {'role':'user', 'content':query_text},
                     {'role':'assistant', 'content':translations_str}
                     ]
                 query_text = '''
-                    When I try to load the translated text into json, I get an error:
+                    When I try to parse the returned JSON, I encountered an error:
                     {e}
-                    The json format is wrong, it may be:\n1. special characters, such as no escape character before the quotation mark, or there may be extra characters. In this case you should fix it.\n2. There are more than one json array, In this case you should no split the text to be translated.\n please check and re-output.
+                    Please make corrections.
                     '''
+                # The json format is wrong, it may be:\n1. special characters, such as no escape character before the quotation mark, or there may be extra characters. In this case you should fix it.\n2. There are more than one json array, In this case you should no split the text to be translated.\n please check and re-output.
                 gpt_instance.set_use_history(True)
+                # sleep 1 seconds to avoid rate limit bug like pinecorn had
+                time.sleep(1)
                 continue
             log_error(row_number, row_data, e, translations_str)
-            break
-        except Exception as e:
-            if attempt < retries - 1:
-                logger.warning(f"Row {row_number} Exception, attempt{attempt}, error:{e}")
-                continue
-            log_error(row_number, row_data, e)
             break
 
     return row_data + tuple(translated_texts)
 
-def process_excel(input_file, output_file, min_row = 2, max_row = None, target_languages = None, progress_callback=None):    
+def process_excel(input_file, output_file, min_row = 2, max_row = None, target_languages = None, progress_callback=None, enable_gpt4 = False):    
     input_wb = openpyxl.load_workbook(input_file)
     input_sheet = input_wb.active
 
@@ -216,10 +279,13 @@ def process_excel(input_file, output_file, min_row = 2, max_row = None, target_l
     # Process each row in the input sheet using ThreadPoolExecutor
     input_data = list(input_sheet.iter_rows(min_row=min_row, max_row=max_row, min_col=1, max_col=4, values_only=True))
 
+    row_count = 0
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(process_row, row_number, row_data, target_languages, progress_callback=progress_callback): row_data for row_number, row_data in enumerate(input_data, start=min_row)}
+        futures = {executor.submit(process_row, row_number, row_data, target_languages, enable_gpt4=enable_gpt4): row_data for row_number, row_data in enumerate(input_data, start=min_row)}
 
         for future in futures:
+            row_count = row_count + 1
+            progress_callback(f"{row_count}/{max_row} rows processed")
             output_data = future.result()
             output_sheet.append(output_data)
             output_wb.save(output_file)

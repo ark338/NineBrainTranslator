@@ -28,13 +28,16 @@ def translate_text():
     languages = request.form.getlist('languages')
     target_languages = jsonify(eval(languages[0])).json
     user_id = request.form['user_id']
+    enable_gpt4 = request.form['enable_gpt4']
 
     # 这里对应了trans代码中的process_row函数的定义：text需要是一个元组，其中第四个元素是要翻译的文本
     transrow = ('', '', '', text)
 
     def report_progress(lang):
         socketio.emit('translation_progress', {'user_id': user_id, 'progress':lang})
-    translations = trans.process_row(1, transrow, target_languages, report_progress)  # 使用您提供的翻译函数
+    translations = trans.process_row(1, transrow, target_languages, report_progress, enable_gpt4=enable_gpt4)  # 使用您提供的翻译函数
+
+    print(f" text {text} target_languages {target_languages} user_id {user_id} enable_gpt4 {enable_gpt4}")
 
     result = ""
     for i in range(len(target_languages)):
@@ -61,10 +64,12 @@ def upload_file():
         return jsonify({"error": "File upload failed"}), 400
 
     languages = request.form.getlist('languages')
-    print(f"languages: {languages}")
     target_languages = jsonify(eval(languages[0])).json
     user_id = request.form['user_id']
+    enable_gpt4 = request.form['enable_gpt4']
     
+    print(f"languages: {target_languages} user_id {user_id} enable_gpt4 {enable_gpt4}")
+
     def report_progress(lang):
         socketio.emit('file_progress', {'user_id': user_id, 'progress':lang})
     
@@ -76,7 +81,7 @@ def upload_file():
     session['download_filepath'] = download_filepath
     session['download_filename'] = download_filename
 
-    trans.process_excel(upload_filepath, download_filepath, target_languages = target_languages, progress_callback=report_progress)  # 使用您提供的翻译函数
+    trans.process_excel(upload_filepath, download_filepath, target_languages = target_languages, progress_callback=report_progress, enable_gpt4=enable_gpt4)  # 使用您提供的翻译函数
 
     return jsonify({"success": "Translation Success!", "filename": filename}), 200
 
