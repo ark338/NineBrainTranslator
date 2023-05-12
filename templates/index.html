@@ -171,7 +171,13 @@
     <div class="container">
         <section id="upload">
             <h2>Upload Translation Excel</h2>
-            <p>请确保excel文件格式正确，第一行是标题，翻译会从第二行开始，前三列是1,2,3级分类，第四列才是要翻译的正文。GPT在翻译语言时速度和文字数量相关，内容较多时翻译可能长达几个小时，请耐心等待翻译完成</p>
+            <div>
+                <p>
+                    请确保excel文件格式正确:翻译的内容在第四列，从第二行开始，如下图所示。<br>
+                    翻译内容较多时会很慢，内容多时会花费几个小时，请不要关闭页面，耐心等待完成。<br>
+                </p>
+                <img src="/static/example.png" alt="Example">
+            </div>
             <input type="file" id="fileInput">
             <button id="submitFile">Submit</button>
             <div id="fileProgress"></div>

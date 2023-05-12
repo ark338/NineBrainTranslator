@@ -39,3 +39,7 @@ button {
     white-space: pre-wrap;
 }
 
+.container img {
+    max-width: 100%;
+    height: auto;
+}
