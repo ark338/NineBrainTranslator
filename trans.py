@@ -36,8 +36,9 @@ def get_context(gpt_instance, query_text, max_retries = 3):
     else :
         # use azure
         embe_instance = embedding.Embedding(
-            model="model-text-embedding-ada-002", 
+            model="text-embedding-ada-002", 
             api_type="azure", 
+            api_key = os.getenv("AZURE_API_KEY"),
             api_base = "https://ninebot-rd-openai-1.openai.azure.com/",
             api_version = "2022-12-01")
     
